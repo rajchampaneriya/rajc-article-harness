@@ -11,12 +11,14 @@ permissions:
   pull-requests: read
 engine:
   id: pi
-  # Route A: Z.ai's Anthropic Messages endpoint. Route B (OpenAI Responses) is in docs/spike.md.
+  # Route B: Z.ai's OpenAI Responses endpoint. Route A (Anthropic Messages) failed in
+  # run 44435143453: the proxy forwards Pi's /chat/completions path untranslated and
+  # Z.ai's Anthropic endpoint has no such route. See docs/spike.md.
   model: zai/glm-5.3
-  model-provider: anthropic
+  model-provider: openai
   env:
-    ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
-    ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
+    OPENAI_BASE_URL: https://api.z.ai/api/v1
+    OPENAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
 network:
   allowed: [defaults, api.z.ai]
 tools:
