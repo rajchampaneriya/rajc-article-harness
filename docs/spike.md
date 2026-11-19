@@ -70,16 +70,28 @@ gh-aw sends Pi's OpenAI-family traffic through the Responses API. Z.ai documents
 
 ## Decision record
 
-Fill this in after the run.
+Filled in after the runs on 2026-11-19. Route A and Route B as first written both
+failed for the same hidden reason: a `zai/` model prefix makes Pi speak OpenAI wire
+(`POST /chat/completions`) no matter what `model-provider` says.
 
 | Hypothesis | Result | Evidence link |
 |---|---|---|
-| H0 | Pass in CI (compiler v1.2.3, Pi 1.5.0). The API proxy's only target is `anthropic` → `api.z.ai`, base path `/api/anthropic`; Pi requests `glm-5.3` through the gateway; the Copilot token is excluded from the agent; threat detection is disabled. The new secret still needs `--approve` locally. | [run 43776307028](https://github.com/rajchampaneriya/rajc-article-harness/actions/runs/43776307028) |
-| H1 | | |
-| H2 | | |
-| H3 | | |
-| H4 | | |
-| H5 | | |
-| H6 | | |
+| H0 | Pass (compiler v1.2.2, Pi 1.5.0). Lock routes anthropic → `api.z.ai`, base path `/api/anthropic`; the Copilot token is excluded; threat detection is off. Working config: **bare `glm-5.3` + `model-provider: anthropic`** — the `zai/` prefix had to go. | [run 44436753325](https://github.com/rajchampaneriya/rajc-article-harness/actions/runs/44436753325) |
+| H1 | Pass. Firewall access log shows `CONNECT api.z.ai:443` tunnels allowed, none blocked. | run artifacts, `sandbox/firewall/logs/access.log` |
+| H2 | Pass. GLM-5.3 answered and called tools (~18 AIC, ~12K tokens): one interview comment, one notes file. | [issue #3 comment](https://github.com/rajchampaneriya/rajc-article-harness/issues/3#issuecomment-6996787849) |
+| H3 | Pass. Agent read `SKILL.md` and `references/interview.md`; the comment is prompts only, no article prose. | same comment, "Spike evidence" list |
+| H4 | Pass. Exactly one harness comment on the issue. | same |
+| H5 | Pass after one repo setting. The patch added only `spike/notes/3.md` (19 lines). Runs before the setting change pushed branch `spike/interview-notes-3-*` and fell back to issue #5; enable "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General → Workflow permissions. | [issue #5](https://github.com/rajchampaneriya/rajc-article-harness/issues/5) |
+| H6 | Pass. Minutes-scale run, well under the 15-minute timeout; ~18 AIC. | run summary |
 
-**Decision:** option B (gh-aw) or option A (plain Actions), and why.
+**Decision:** option B (gh-aw). The firewall, safe outputs and skill loading all work
+with GLM on the Coding Plan. Two gotchas for the production workers:
+
+1. **Model id must stay bare** (`glm-5.3`, no `zai/` prefix) with `model-provider: anthropic`.
+   The prefix switches Pi to OpenAI wire, and the GLM Coding Plan key is denied on
+   `/chat/completions` for every model (`model_access_denied`) — it only serves
+   Anthropic `/v1/messages` and `/v1/responses`.
+2. **Wrong keys fail as silent stream drops, not 401s.** A key with no balance
+   (`[1113] Insufficient balance`) makes Z.ai open the SSE stream and close it with
+   zero tokens — Pi logs `Stream ended without finish_reason`. Check the key with a
+   direct curl before debugging the workflow.
