@@ -11,14 +11,16 @@ permissions:
   pull-requests: read
 engine:
   id: pi
-  # Route B: Z.ai's OpenAI Responses endpoint. Route A (Anthropic Messages) failed in
-  # run 44435143453: the proxy forwards Pi's /chat/completions path untranslated and
-  # Z.ai's Anthropic endpoint has no such route. See docs/spike.md.
-  model: zai/glm-5.3
-  model-provider: openai
+  # Route A with a bare model id: the zai/ prefix forces Pi onto its OpenAI wire
+  # (POST /chat/completions), which Z.ai's Anthropic target does not serve and the
+  # Coding Plan key cannot use on the OpenAI target (model_access_denied). A bare
+  # model id plus model-provider anthropic keeps Pi on Anthropic wire (/v1/messages),
+  # which the GLM Coding Plan key reaches. See docs/spike.md.
+  model: glm-5.3
+  model-provider: anthropic
   env:
-    OPENAI_BASE_URL: https://api.z.ai/api/v1
-    OPENAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+    ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+    ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
 network:
   allowed: [defaults, api.z.ai]
 tools:
