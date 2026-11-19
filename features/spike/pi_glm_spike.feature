@@ -51,3 +51,31 @@ Feature: Spike - Pi on GLM Coding Plan inside GitHub Agentic Workflows
     When I comment "/spike" on the test issue
     Then the run finishes within 15 minutes
     And the Z.ai usage page counts the calls against the Coding Plan quota
+
+  @H7 @guard
+  Scenario: The agent reads an idea opened from the writer's second account
+    Given "raj-champaneriya-ibm" is listed in the workflow's trusted users
+    And "raj-champaneriya-ibm" opened the test issue with an idea in the body
+    When I comment "/spike" on the test issue
+    Then the job of the piece in the notes names a reader and an outcome from the issue body
+    And the notes contain no "[TK" placeholder for the reader or the outcome
+    And the run's gateway log shows no DIFC_FILTERED event for the test issue
+
+  @H7 @guard
+  Scenario: The agent stops when the idea is hidden from it
+    Given an account outside the trusted users opened the test issue
+    When I comment "/spike" on the test issue
+    Then no pull request is opened
+    And the harness posts one comment saying it could not read the idea yet
+    And the run reports missing data
+
+  @H8
+  Scenario: The pull request coaches the writer instead of reporting to an engineer
+    Given the agent has read the test issue
+    When I comment "/spike" on the test issue
+    Then the pull request body starts with the interview illustration
+    And it has one bold question of under 15 words about the idea
+    And it has at most two plain sentences addressed to "you"
+    And it ends with "Your next move"
+    And it names no file, model, tool, run or cost
+    And it has no headings and no bullet lists

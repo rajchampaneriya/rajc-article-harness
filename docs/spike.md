@@ -16,6 +16,8 @@ Time box: half a day.
 | H4 | Prompts arrive as one issue comment | exactly one harness comment on the test issue |
 | H5 | Notes reach a draft PR without local state | draft PR `[spike] ...` adds only `spike/notes/<n>.md` |
 | H6 | The run fits the budget | under 15 minutes; calls appear under the Coding Plan quota |
+| H7 | The agent reads ideas from every account the writer uses | notes name the reader and outcome from the issue; no `DIFC_FILTERED` event; an untrusted author gets a "could not read" comment and no PR |
+| H8 | The PR coaches the writer | body is the illustration, one bold question, at most two plain sentences, and "Your next move"; no technical detail |
 
 The same hypotheses are manual acceptance scenarios in `features/spike/pi_glm_spike.feature`,
 tagged `@manual`. No step runner exists yet, so check each one by hand against the run evidence.
@@ -95,3 +97,15 @@ with GLM on the Coding Plan. Two gotchas for the production workers:
    (`[1113] Insufficient balance`) makes Z.ai open the SSE stream and close it with
    zero tokens — Pi logs `Stream ended without finish_reason`. Check the key with a
    direct curl before debugging the workflow.
+
+### Follow-up: issue #7 arrived empty (2026-11-19)
+
+Issue #7 was opened from `raj-champaneriya-ibm`, the writer's second account. On a public repo
+gh-aw applies `min-integrity: approved` automatically, and that account's association is
+`CONTRIBUTOR` (unapproved), so the GitHub MCP gateway removed the issue before GLM saw it. The run
+still reported success and opened PR #8 with `[TK]` placeholders. Issue #3, opened by the owner
+account, was unaffected.
+
+Fix: `tools.github.trusted-users: [raj-champaneriya-ibm]` with `min-integrity: approved`, plus a
+prompt rule to stop and say so when the issue is unreadable (H7). `gh aw logs --filtered-integrity`
+lists runs where this happens.
